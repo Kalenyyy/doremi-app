@@ -11,7 +11,7 @@ function App() {
     const synth = useRef(
         new Tone.Synth({
             oscillator: {
-                type: "square",
+                type: "sawtooth",
             },
         }).toDestination(),
     );
