@@ -27,7 +27,7 @@ This project uses device movement (accelerometer) to trigger musical notes in re
 ### 1. Clone repository
 
 ```bash
-git clone [text](https://github.com/Kalenyyy/doremi-app)
+git clone https://github.com/Kalenyyy/doremi-app
 cd doremi-app
 ```
 
