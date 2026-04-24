@@ -1,66 +1,101 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import * as Tone from "tone";
 
 function App() {
-  const [permission, setPermission] = useState(false);
-  const synth = new Tone.Synth().toDestination();
+    const [permission, setPermission] = useState(false);
+    const [noteLabel, setNoteLabel] = useState("-");
 
-  const requestPermission = async () => {
-    if (typeof DeviceMotionEvent.requestPermission === "function") {
-      const res = await DeviceMotionEvent.requestPermission();
-      if (res === "granted") {
-        setPermission(true);
-        startListening();
-      }
-    } else {
-      setPermission(true);
-      startListening();
-    }
-  };
+    const lastNote = useRef("");
+    const lastTime = useRef(0);
 
-  const startListening = () => {
-    window.addEventListener("devicemotion", handleMotion);
-  };
+    const synth = useRef(
+        new Tone.Synth({
+            oscillator: {
+                type: "square",
+            },
+        }).toDestination(),
+    );
 
-  let lastNote = "";
+    const playNote = async (note, label) => {
+        await Tone.start();
+        synth.current.triggerAttackRelease(note, "8n");
+        setNoteLabel(label);
+        console.log("Play:", note);
+    };
 
-  const handleMotion = (event) => {
-    const y = event.accelerationIncludingGravity.y;
+    const requestPermission = async () => {
+        if (typeof DeviceMotionEvent.requestPermission === "function") {
+            const res = await DeviceMotionEvent.requestPermission();
+            if (res === "granted") {
+                setPermission(true);
+            }
+        } else {
+            setPermission(true);
+        }
+    };
 
-    if (!y) return;
+    useEffect(() => {
+        if (!permission) return;
 
-    // Mapping sederhana
-    if (y > 7 && lastNote !== "DO_LOW") {
-      playNote("C4"); // Do rendah
-      lastNote = "DO_LOW";
-    } else if (y < -7 && lastNote !== "FA") {
-      playNote("F4"); // Fa
-      lastNote = "FA";
-    } else if (y > 2 && y < 5 && lastNote !== "DO_HIGH") {
-      playNote("C5"); // Do tinggi
-      lastNote = "DO_HIGH";
-    }
-  };
+        const handleMotion = (event) => {
+            const now = Date.now();
+            const y = event.accelerationIncludingGravity?.y;
 
-  const playNote = async (note) => {
-    await Tone.start(); // penting!
-    synth.triggerAttackRelease(note, "8n");
-    console.log("Play:", note);
-  };
+            if (y == null) return;
 
-  return (
-    <div style={{ textAlign: "center", marginTop: "50px" }}>
-      <h1>HP Music Controller 🎵</h1>
+            if (now - lastTime.current < 500) return;
 
-      {!permission && (
-        <button onClick={requestPermission}>
-          Start Sensor
-        </button>
-      )}
+            if (y > 8 && lastNote.current !== "DO_LOW") {
+                playNote("C4", "DO rendah");
+                lastNote.current = "DO_LOW";
+                lastTime.current = now;
+            } else if (y < -8 && lastNote.current !== "FA") {
+                playNote("F4", "FA");
+                lastNote.current = "FA";
+                lastTime.current = now;
+            } else if (y > -2 && y < 2 && lastNote.current !== "DO_HIGH") {
+                playNote("C5", "DO tinggi");
+                lastNote.current = "DO_HIGH";
+                lastTime.current = now;
+            }
+        };
 
-      {permission && <p>Gerakkan HP kamu!</p>}
-    </div>
-  );
+        window.addEventListener("devicemotion", handleMotion);
+
+        return () => {
+            window.removeEventListener("devicemotion", handleMotion);
+        };
+    }, [permission]);
+
+    return (
+        <div style={{ textAlign: "center", marginTop: "50px" }}>
+            <h1>HP Music Controller 🎵</h1>
+
+            {!permission && (
+                <button
+                    onClick={requestPermission}
+                    style={{
+                        padding: "10px 20px",
+                        fontSize: "16px",
+                        cursor: "pointer",
+                    }}
+                >
+                    Start Sensor
+                </button>
+            )}
+
+            {permission && (
+                <>
+                    <p>Gerakkan HP kamu:</p>
+                    <p>⬆️ Angkat = DO rendah</p>
+                    <p>⬇️ Turunkan = FA</p>
+                    <p>➡️ Tengah = DO tinggi</p>
+
+                    <h2 style={{ marginTop: "20px" }}>Nada: {noteLabel}</h2>
+                </>
+            )}
+        </div>
+    );
 }
 
 export default App;
