@@ -69,7 +69,7 @@ function App() {
 
     return (
         <div style={{ textAlign: "center", marginTop: "50px" }}>
-            <h1>HP Music Controller 🎵</h1>
+            <h1>Percobaan </h1>
 
             {!permission && (
                 <button
