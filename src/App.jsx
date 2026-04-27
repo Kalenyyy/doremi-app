@@ -8,25 +8,24 @@ function App() {
     const lastNote = useRef("");
     const lastTime = useRef(0);
 
-    const synth = useRef(
-        new Tone.PolySynth(Tone.Synth, {
-            oscillator: {
-                type: "triangle",
-            },
-            envelope: {
-                attack: 0.05,
-                decay: 0.2,
-                sustain: 0.5,
-                release: 1.2,
-            },
-        }).toDestination(),
-    );
+    const players = useRef({
+        DO_LOW: new Tone.Player("/sounds/Do_Low.mp3").toDestination(),
+        FA: new Tone.Player("/sounds/Fa.mp3").toDestination(),
+        DO_HIGH: new Tone.Player("/sounds/Do_High.mp3").toDestination(),
+    });
 
-    const playNote = async (note, label) => {
+    const playNote = async (type, label) => {
         await Tone.start();
-        synth.current.triggerAttackRelease(note, "2n");
-        setNoteLabel(label);
-        console.log("Play:", note);
+
+        const player = players.current[type];
+
+        if (player.loaded) {
+            player.start();
+            setNoteLabel(label);
+            console.log("Play:", type);
+        } else {
+            console.log("Sound belum ready");
+        }
     };
 
     const requestPermission = async () => {
@@ -52,15 +51,15 @@ function App() {
             if (now - lastTime.current < 500) return;
 
             if (y > 8 && lastNote.current !== "DO_LOW") {
-                playNote("C4", "DO rendah");
+                playNote("DO_LOW", "DO rendah");
                 lastNote.current = "DO_LOW";
                 lastTime.current = now;
             } else if (y < -8 && lastNote.current !== "FA") {
-                playNote("F4", "FA");
+                playNote("FA", "FA");
                 lastNote.current = "FA";
                 lastTime.current = now;
             } else if (y > -2 && y < 2 && lastNote.current !== "DO_HIGH") {
-                playNote("C5", "DO tinggi");
+                playNote("DO_HIGH", "DO tinggi");
                 lastNote.current = "DO_HIGH";
                 lastTime.current = now;
             }
