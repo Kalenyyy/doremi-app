@@ -1,68 +1,87 @@
 import { useState, useRef, useEffect } from "react";
-import * as Tone from "tone";
 
 function App() {
     const [permission, setPermission] = useState(false);
     const [noteLabel, setNoteLabel] = useState("-");
 
     const lastNote = useRef("");
+    const audioCtx = useRef(null);
+    const buffers = useRef({});
+    const gainNodes = useRef({});
+    const sourceNodes = useRef({});
 
-    const players = useRef({});
-    const gains = useRef({});
-    const reverb = useRef(null);
-
-    useEffect(() => {
-        reverb.current = new Tone.Reverb({
-            decay: 2,
-            wet: 0.3,
-        }).toDestination();
-
-        gains.current = {
-            DO_LOW: new Tone.Gain(0).connect(reverb.current),
-            FA: new Tone.Gain(0).connect(reverb.current),
-            DO_HIGH: new Tone.Gain(0).connect(reverb.current),
-        };
-
-        players.current = {
-            DO_LOW: new Tone.Player({
-                url: "/sounds/Do_Low.mp3",
-                loop: true,
-                loopStart: 0.05,
-                loopEnd: 0.6,
-            }).connect(gains.current.DO_LOW),
-
-            FA: new Tone.Player({
-                url: "/sounds/Fa.mp3",
-                loop: true,
-                loopStart: 0.05,
-                loopEnd: 0.8,
-            }).connect(gains.current.FA),
-
-            DO_HIGH: new Tone.Player({
-                url: "/sounds/Do_High.mp3",
-                loop: true,
-                loopStart: 0.1,
-                loopEnd: 0.7,
-            }).connect(gains.current.DO_HIGH),
-        };
-    }, []);
+    const loadBuffer = async (ctx, url) => {
+        const res = await fetch(url);
+        const arrayBuffer = await res.arrayBuffer();
+        return await ctx.decodeAudioData(arrayBuffer);
+    };
 
     const startAll = async () => {
-        await Tone.start();
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        audioCtx.current = ctx;
 
-        Object.values(players.current).forEach((p) => {
-            if (p.state !== "started") {
-                p.start();
-            }
+        const masterGain = ctx.createGain();
+        masterGain.gain.value = 1;
+        masterGain.connect(ctx.destination);
+
+        const [bufDO_LOW, bufFA, bufDO_HIGH] = await Promise.all([
+            loadBuffer(ctx, "/sounds/Do_Low.mp3"),
+            loadBuffer(ctx, "/sounds/Fa.mp3"),
+            loadBuffer(ctx, "/sounds/Do_High.mp3"),
+        ]);
+
+        buffers.current = {
+            DO_LOW: bufDO_LOW,
+            FA: bufFA,
+            DO_HIGH: bufDO_HIGH,
+        };
+
+        gainNodes.current = {
+            DO_LOW: ctx.createGain(),
+            FA: ctx.createGain(),
+            DO_HIGH: ctx.createGain(),
+        };
+
+        Object.values(gainNodes.current).forEach((g) => {
+            g.gain.value = 0;
+            g.connect(masterGain);
+        });
+
+        Object.keys(buffers.current).forEach((key) => {
+            const source = ctx.createBufferSource();
+            source.buffer = buffers.current[key];
+            source.loop = true;
+
+            const loopPoints = {
+                DO_LOW: { start: 0.02, end: 0.78 },
+                FA: { start: 0.02, end: 1.1 },
+                DO_HIGH: { start: 0.05, end: 2.4 },
+            };
+
+            source.loopStart = loopPoints[key].start;
+            source.loopEnd = loopPoints[key].end;
+
+            source.connect(gainNodes.current[key]);
+            source.start(0, loopPoints[key].start);
+
+            sourceNodes.current[key] = source;
         });
     };
 
     const crossfadeTo = (type, label) => {
-        Object.entries(gains.current).forEach(([key, gain]) => {
+        const ctx = audioCtx.current;
+        if (!ctx) return;
+
+        const now = ctx.currentTime;
+        const FADE = 0.15;
+
+        Object.entries(gainNodes.current).forEach(([key, gain]) => {
+            gain.gain.cancelScheduledValues(now);
+            gain.gain.setValueAtTime(gain.gain.value, now);
             if (key === type) {
-                gain.gain.rampTo(1, 0.2);
+                gain.gain.linearRampToValueAtTime(1, now + FADE);
             } else {
-                gain.gain.rampTo(0, 0.2);
+                gain.gain.linearRampToValueAtTime(0, now + FADE);
             }
         });
 
@@ -71,15 +90,15 @@ function App() {
     };
 
     const requestPermission = async () => {
-        if (typeof DeviceMotionEvent.requestPermission === "function") {
+        if (typeof DeviceMotionEvent?.requestPermission === "function") {
             const res = await DeviceMotionEvent.requestPermission();
             if (res === "granted") {
+                await startAll();
                 setPermission(true);
-                startAll();
             }
         } else {
+            await startAll();
             setPermission(true);
-            startAll();
         }
     };
 
@@ -100,10 +119,7 @@ function App() {
         };
 
         window.addEventListener("devicemotion", handleMotion);
-
-        return () => {
-            window.removeEventListener("devicemotion", handleMotion);
-        };
+        return () => window.removeEventListener("devicemotion", handleMotion);
     }, [permission]);
 
     return (
@@ -119,7 +135,6 @@ function App() {
                     <p>⬆️ Angkat = DO rendah</p>
                     <p>➡️ Tengah = FA</p>
                     <p>⬇️ Turunkan = DO tinggi</p>
-
                     <h2>Nada: {noteLabel}</h2>
                 </>
             )}
