@@ -20,11 +20,16 @@ function App() {
         const player = players.current[type];
 
         if (player.loaded) {
-            player.start();
+            let duration = 0.5;
+
+            if (type === "DO_HIGH") duration = 0.3;
+            if (type === "FA") duration = 0.5;
+            if (type === "DO_LOW") duration = 0.5;
+
+            player.fadeOut = 0.1;
+            player.start(0, 0, duration)
+
             setNoteLabel(label);
-            console.log("Play:", type);
-        } else {
-            console.log("Sound belum ready");
         }
     };
 
