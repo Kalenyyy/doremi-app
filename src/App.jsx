@@ -22,9 +22,9 @@ function App() {
         if (player.loaded) {
             let duration = 0.5;
 
-            if (type === "DO_HIGH") duration = 0.3;
-            if (type === "FA") duration = 0.5;
-            if (type === "DO_LOW") duration = 0.5;
+            if (type === "DO_HIGH") duration = 0.8;
+            if (type === "FA") duration = 2;
+            if (type === "DO_LOW") duration = 2;
 
             player.fadeOut = 0.1;
             player.start(0, 0, duration)
