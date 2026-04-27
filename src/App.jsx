@@ -7,27 +7,32 @@ function App() {
 
     const lastNote = useRef("");
 
-    // 🎵 Players dengan loop + fade
     const players = useRef({
         DO_LOW: new Tone.Player({
             url: "/sounds/Do_Low.mp3",
             loop: true,
-            fadeIn: 0.1,
-            fadeOut: 0.2,
+            loopStart: 0.05,
+            loopEnd: 0.6,
+            fadeIn: 0.05,
+            fadeOut: 0.1,
         }).toDestination(),
 
         FA: new Tone.Player({
             url: "/sounds/Fa.mp3",
             loop: true,
-            fadeIn: 0.1,
-            fadeOut: 0.2,
+            loopStart: 0.05,
+            loopEnd: 0.8,
+            fadeIn: 0.05,
+            fadeOut: 0.1,
         }).toDestination(),
 
         DO_HIGH: new Tone.Player({
             url: "/sounds/Do_High.mp3",
             loop: true,
-            fadeIn: 0.1,
-            fadeOut: 0.2,
+            loopStart: 0.1,
+            loopEnd: 0.7, 
+            fadeIn: 0.05,
+            fadeOut: 0.1,
         }).toDestination(),
     });
 
