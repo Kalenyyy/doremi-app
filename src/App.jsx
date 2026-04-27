@@ -7,52 +7,64 @@ function App() {
 
     const lastNote = useRef("");
 
-    const players = useRef({
-        DO_LOW: new Tone.Player({
-            url: "/sounds/Do_Low.mp3",
-            loop: true,
-            loopStart: 0.05,
-            loopEnd: 0.6,
-            fadeIn: 0.05,
-            fadeOut: 0.1,
-        }).toDestination(),
+    const players = useRef({});
+    const gains = useRef({});
+    const reverb = useRef(null);
 
-        FA: new Tone.Player({
-            url: "/sounds/Fa.mp3",
-            loop: true,
-            loopStart: 0.05,
-            loopEnd: 0.8,
-            fadeIn: 0.05,
-            fadeOut: 0.1,
-        }).toDestination(),
+    useEffect(() => {
+        reverb.current = new Tone.Reverb({
+            decay: 2,
+            wet: 0.3,
+        }).toDestination();
 
-        DO_HIGH: new Tone.Player({
-            url: "/sounds/Do_High.mp3",
-            loop: true,
-            loopStart: 0.1,
-            loopEnd: 0.7, 
-            fadeIn: 0.05,
-            fadeOut: 0.1,
-        }).toDestination(),
-    });
+        gains.current = {
+            DO_LOW: new Tone.Gain(0).connect(reverb.current),
+            FA: new Tone.Gain(0).connect(reverb.current),
+            DO_HIGH: new Tone.Gain(0).connect(reverb.current),
+        };
 
-    const stopAll = () => {
+        players.current = {
+            DO_LOW: new Tone.Player({
+                url: "/sounds/Do_Low.mp3",
+                loop: true,
+                loopStart: 0.05,
+                loopEnd: 0.6,
+            }).connect(gains.current.DO_LOW),
+
+            FA: new Tone.Player({
+                url: "/sounds/Fa.mp3",
+                loop: true,
+                loopStart: 0.05,
+                loopEnd: 0.8,
+            }).connect(gains.current.FA),
+
+            DO_HIGH: new Tone.Player({
+                url: "/sounds/Do_High.mp3",
+                loop: true,
+                loopStart: 0.1,
+                loopEnd: 0.7,
+            }).connect(gains.current.DO_HIGH),
+        };
+    }, []);
+
+    const startAll = async () => {
+        await Tone.start();
+
         Object.values(players.current).forEach((p) => {
-            if (p.state === "started") {
-                p.stop();
+            if (p.state !== "started") {
+                p.start();
             }
         });
     };
 
-    const playNote = async (type, label) => {
-        await Tone.start();
-
-        const player = players.current[type];
-
-        if (player.state === "started") return;
-
-        stopAll();
-        player.start();
+    const crossfadeTo = (type, label) => {
+        Object.entries(gains.current).forEach(([key, gain]) => {
+            if (key === type) {
+                gain.gain.rampTo(1, 0.2);
+            } else {
+                gain.gain.rampTo(0, 0.2);
+            }
+        });
 
         setNoteLabel(label);
         lastNote.current = type;
@@ -63,9 +75,11 @@ function App() {
             const res = await DeviceMotionEvent.requestPermission();
             if (res === "granted") {
                 setPermission(true);
+                startAll();
             }
         } else {
             setPermission(true);
+            startAll();
         }
     };
 
@@ -76,13 +90,12 @@ function App() {
             const y = event.accelerationIncludingGravity?.y;
             if (y == null) return;
 
-            // 🎯 Mapping FINAL
             if (y > 8 && lastNote.current !== "DO_LOW") {
-                playNote("DO_LOW", "DO rendah");
+                crossfadeTo("DO_LOW", "DO rendah");
             } else if (y < -8 && lastNote.current !== "DO_HIGH") {
-                playNote("DO_HIGH", "DO tinggi");
+                crossfadeTo("DO_HIGH", "DO tinggi");
             } else if (y > -2 && y < 2 && lastNote.current !== "FA") {
-                playNote("FA", "FA");
+                crossfadeTo("FA", "FA");
             }
         };
 
@@ -95,19 +108,10 @@ function App() {
 
     return (
         <div style={{ textAlign: "center", marginTop: "50px" }}>
-            <h1>HP Music Controller 🎵</h1>
+            <h1>🎵 HP Music Controller</h1>
 
             {!permission && (
-                <button
-                    onClick={requestPermission}
-                    style={{
-                        padding: "10px 20px",
-                        fontSize: "16px",
-                        cursor: "pointer",
-                    }}
-                >
-                    Start Sensor
-                </button>
+                <button onClick={requestPermission}>Start Sensor</button>
             )}
 
             {permission && (
@@ -116,7 +120,7 @@ function App() {
                     <p>➡️ Tengah = FA</p>
                     <p>⬇️ Turunkan = DO tinggi</p>
 
-                    <h2 style={{ marginTop: "20px" }}>Nada: {noteLabel}</h2>
+                    <h2>Nada: {noteLabel}</h2>
                 </>
             )}
         </div>
