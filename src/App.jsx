@@ -96,7 +96,6 @@ function App() {
 
             {permission && (
                 <>
-                    <p>Gerakkan HP kamu:</p>
                     <p>⬆️ Angkat = DO rendah</p>
                     <p>⬇️ Turunkan = FA</p>
                     <p>➡️ Tengah = DO tinggi</p>
