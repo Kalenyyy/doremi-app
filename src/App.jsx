@@ -9,16 +9,22 @@ function App() {
     const lastTime = useRef(0);
 
     const synth = useRef(
-        new Tone.Synth({
+        new Tone.PolySynth(Tone.Synth, {
             oscillator: {
-                type: "square",
+                type: "triangle",
+            },
+            envelope: {
+                attack: 0.05,
+                decay: 0.2,
+                sustain: 0.5,
+                release: 1.2,
             },
         }).toDestination(),
     );
 
     const playNote = async (note, label) => {
         await Tone.start();
-        synth.current.triggerAttackRelease(note, "8n");
+        synth.current.triggerAttackRelease(note, "2n");
         setNoteLabel(label);
         console.log("Play:", note);
     };
