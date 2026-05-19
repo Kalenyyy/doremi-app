@@ -2,19 +2,16 @@ import { useRef, useState } from "react";
 import { CrossfadeLooper } from "./CrossfadeLooper";
 import { NOTES } from "../constants/notes";
 
-/**
- * useAudioEngine
- * Handles AudioContext creation, buffer loading, and CrossfadeLooper management.
- * Returns { ready, loading, activeNote, init, switchTo }
- */
 export function useAudioEngine() {
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activeNote, setActiveNote] = useState(null);
+  const [isMuted, setIsMuted] = useState(false);
 
   const audioCtx = useRef(null);
   const loopers = useRef({});
   const lastNote = useRef(null);
+  const masterGainNode = useRef(null); 
 
   const loadBuffer = async (ctx, url) => {
     const res = await fetch(url);
@@ -22,7 +19,6 @@ export function useAudioEngine() {
     return ctx.decodeAudioData(ab);
   };
 
-  /** Request sensor permission (iOS) then load all audio buffers. */
   const init = async () => {
     setLoading(true);
 
@@ -40,6 +36,7 @@ export function useAudioEngine() {
     const masterGain = ctx.createGain();
     masterGain.gain.value = 1;
     masterGain.connect(ctx.destination);
+    masterGainNode.current = masterGain; 
 
     const entries = Object.entries(NOTES);
     const buffers = await Promise.all(
@@ -48,7 +45,7 @@ export function useAudioEngine() {
 
     entries.forEach(([key, cfg], i) => {
       const looper = new CrossfadeLooper(ctx, buffers[i], cfg, masterGain);
-      looper.start(); // starts silent — noteGain is 0
+      looper.start();
       loopers.current[key] = looper;
     });
 
@@ -56,7 +53,6 @@ export function useAudioEngine() {
     setReady(true);
   };
 
-  /** Crossfade to the given note key, ignoring if already active. */
   const switchTo = (key) => {
     if (lastNote.current === key) return;
     Object.entries(loopers.current).forEach(([k, looper]) => {
@@ -66,5 +62,14 @@ export function useAudioEngine() {
     setActiveNote(key);
   };
 
-  return { ready, loading, activeNote, init, switchTo };
+  const toggleMute = () => {
+    if (!masterGainNode.current) return;
+    setIsMuted((prev) => {
+      const next = !prev;
+      masterGainNode.current.gain.value = next ? 0 : 1;
+      return next;
+    });
+  };
+
+  return { ready, loading, activeNote, init, switchTo, isMuted, toggleMute };
 }

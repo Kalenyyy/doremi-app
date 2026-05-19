@@ -4,14 +4,9 @@ import TutorialPage from "./pages/TutorialPage";
 import PlayerPage from "./pages/PlayerPage";
 import { useAudioEngine } from "./audio/useAudioEngine";
 
-/**
- * App
- * Manages page routing: landing → tutorial → player.
- * Audio engine is initialized when the user taps "Ayo Mulai Bermain".
- */
 export default function App() {
-    const [page, setPage] = useState("landing"); // "landing" | "tutorial" | "player"
-    const { ready, loading, activeNote, init, switchTo } = useAudioEngine();
+    const [page, setPage] = useState("landing");
+    const { ready, loading, activeNote, init, switchTo, isMuted, toggleMute } = useAudioEngine();
 
     const handleStart = async () => {
         await init();
@@ -37,6 +32,8 @@ export default function App() {
             activeNote={activeNote}
             switchTo={switchTo}
             audioReady={ready}
+            isMuted={isMuted}
+            onToggleMute={toggleMute}
         />
     );
 }

@@ -66,29 +66,6 @@ const s = {
         lineHeight: 1.05,
         fontFamily: "'Georgia', serif",
     },
-    badgeActive: {
-        marginTop: 4,
-        padding: "5px 12px",
-        borderRadius: 20,
-        background: "#1a1a1a",
-        color: "#fff",
-        fontSize: 10,
-        fontWeight: 500,
-        letterSpacing: "1.5px",
-        textTransform: "uppercase",
-    },
-    badgeIdle: {
-        marginTop: 4,
-        padding: "5px 12px",
-        borderRadius: 20,
-        background: "transparent",
-        color: "#ccc",
-        fontSize: 10,
-        fontWeight: 500,
-        letterSpacing: "1.5px",
-        textTransform: "uppercase",
-        border: "0.5px solid #ddd",
-    },
     illustration: {
         position: "relative",
         zIndex: 1,
@@ -151,7 +128,13 @@ const s = {
     },
 };
 
-export default function PlayerPage({ activeNote, switchTo, audioReady }) {
+export default function PlayerPage({
+    activeNote,
+    switchTo,
+    audioReady,
+    isMuted,
+    onToggleMute,
+}) {
     useEffect(() => {
         if (!audioReady) return;
 
@@ -313,17 +296,100 @@ export default function PlayerPage({ activeNote, switchTo, audioReady }) {
                         <div style={s.notePlaceholder}>—</div>
                     )}
                 </div>
-                <div style={isActive ? s.badgeActive : s.badgeIdle}>
-                    {isActive ? "● Aktif" : "○ Diam"}
+
+                {/* Grup kanan: mute button + badge */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <button
+                        onClick={onToggleMute}
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 5,
+                            padding: "5px 10px 5px 8px",
+                            borderRadius: 20,
+                            background: isMuted ? "#1a1a1a" : "transparent",
+                            border: `0.5px solid ${isMuted ? "#1a1a1a" : "#ddd"}`,
+                            color: isMuted ? "#fff" : "#888",
+                            fontSize: 10,
+                            fontWeight: 500,
+                            letterSpacing: "1px",
+                            cursor: "pointer",
+                            transition: "all .2s",
+                            WebkitTapHighlightColor: "transparent",
+                            lineHeight: 1,
+                        }}
+                    >
+                        {isMuted ? (
+                            <svg
+                                width="13"
+                                height="13"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            >
+                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                                <line x1="23" y1="9" x2="17" y2="15" />
+                                <line x1="17" y1="9" x2="23" y2="15" />
+                            </svg>
+                        ) : (
+                            <svg
+                                width="13"
+                                height="13"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            >
+                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                                <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                                <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                            </svg>
+                        )}
+                        <span>{isMuted ? "bisu" : "suara"}</span>
+                    </button>
+
+                    <div
+                        style={
+                            isActive
+                                ? {
+                                    padding: "5px 12px",
+                                    borderRadius: 20,
+                                    background: "#1a1a1a",
+                                    color: "#fff",
+                                    fontSize: 10,
+                                    fontWeight: 500,
+                                    letterSpacing: "1.5px",
+                                    textTransform: "uppercase",
+                                    lineHeight: 1,
+                                }
+                                : {
+                                    padding: "5px 12px",
+                                    borderRadius: 20,
+                                    background: "transparent",
+                                    color: "#ccc",
+                                    fontSize: 10,
+                                    fontWeight: 500,
+                                    letterSpacing: "1.5px",
+                                    textTransform: "uppercase",
+                                    border: "0.5px solid #ddd",
+                                    lineHeight: 1,
+                                }
+                        }
+                    >
+                        {isActive ? "● Aktif" : "○ Diam"}
+                    </div>
                 </div>
             </div>
 
-            {/* Illustration */}
             <div style={s.illustration}>
                 <AngklungIllustration size={200} shaking={isActive} />
             </div>
 
-            {/* Gesture pills */}
             <div style={s.gestures}>
                 {Object.entries(NOTES).map(([key, cfg]) => {
                     const active = activeNote === key;
